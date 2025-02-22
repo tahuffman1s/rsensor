@@ -1,0 +1,10 @@
+[package]
+name = "rsensor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sysinfo = "0.33.1"
+crossterm = "0.28.1"
+ratatui = "0.29.0"
+byte-unit = "5.1.6"
