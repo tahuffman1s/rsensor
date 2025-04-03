@@ -1,10 +1,10 @@
 use common::SysWrapper;
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use renderer::core::Rat;
 use stats::mem::MemStats;
-use std::time::{Duration, Instant};
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 mod common;
 mod renderer;
@@ -28,12 +28,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if crossterm::event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 // Exit on 'q' key
-                if key.code == KeyCode::Char('q') {
+                if key.code == KeyCode::Char('q')
+                    || (key.code == KeyCode::Char('c') && key.modifiers == KeyModifiers::CONTROL)
+                {
                     break;
                 }
             }
         }
-        
+
         // Update UI on tick
         if last_tick.elapsed() >= tick_rate {
             memstats.update(&mut sys);
@@ -44,5 +46,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     rat.cleanup()?;
 
-    Ok(())    
+    Ok(())
 }
