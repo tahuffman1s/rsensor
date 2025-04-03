@@ -10,46 +10,33 @@ depends=('gcc-libs')
 makedepends=('cargo')
 provides=('rsensor')
 conflicts=('rsensor')
-install="${pkgname}.install"  # Reference to the install file
+install="${pkgname}.install"
 
-# Override default source handling completely
-source=()
-sha256sums=()
-noextract=()
-
-# Disable makepkg standard build environment
-options=('!strip' '!debug' '!libtool' '!buildflags')
-
-# Skip extraction phase completely 
-pkgver() {
-  echo "0.1.0"
-}
+# Define source as local directory (using current directory)
+source=("$pkgname::git+file://${startdir}")
+sha256sums=('SKIP')
 
 build() {
-  # Build in place without touching source
-  cd "$startdir"
+  cd "$srcdir/$pkgname"
   RUSTFLAGS="" cargo build --release
 }
 
-check() {
-  # Skip checks
-  :
-}
-
 package() {
+  cd "$srcdir/$pkgname"
+  
   # Install binary
-  install -Dm755 "$startdir/target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
+  install -Dm755 "target/release/$pkgname" "$pkgdir/usr/bin/$pkgname"
   
   # Install docs if they exist
-  if [ -f "$startdir/README.md" ]; then
-    install -Dm644 "$startdir/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+  if [ -f "README.md" ]; then
+    install -Dm644 "README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
   fi
   
   # Install license if it exists
-  if [ -f "$startdir/LICENSE" ]; then
-    install -Dm644 "$startdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  if [ -f "LICENSE" ]; then
+    install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   fi
   
   # Install the .install file
-  install -Dm644 "$startdir/${pkgname}.install" "$pkgdir/usr/share/${pkgname}/${pkgname}.install"
+  install -Dm644 "${pkgname}.install" "$pkgdir/usr/share/${pkgname}/${pkgname}.install"
 }
