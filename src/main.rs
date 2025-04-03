@@ -1,6 +1,7 @@
 use common::SysWrapper;
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use renderer::core::Rat;
+use stats::cpu::CpuStats; // Add this line
 use stats::gpu::GpuStats;
 use stats::mem::MemStats;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -13,6 +14,7 @@ mod stats;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut sys: SysWrapper = SysWrapper::new();
+    let mut cpustats: CpuStats = CpuStats::new(); // Add this line
     let mut memstats: MemStats = MemStats::new();
     let mut gpustats: GpuStats = GpuStats::new();
     let mut rat: Rat = Rat::new();
@@ -41,13 +43,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Update UI on tick
         if last_tick.elapsed() >= tick_rate {
             // Update stats
+            cpustats.update(&mut sys); // Add this line
             memstats.update(&mut sys);
             gpustats.update(&mut sys);
 
             // Clear previous mice
             rat.clear();
 
-            // Add new mice
+            // Add new mice - Add CPU stats first, above memory
+            rat.add(cpustats.get_mouse()); // Add this line
             rat.add(memstats.get_mouse());
             rat.add(gpustats.get_mouse());
 

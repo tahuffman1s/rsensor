@@ -43,58 +43,75 @@ impl Rat {
             // Get available area
             let area = frame.size();
 
-            // First create a layout that only uses the top portion of the screen
-            // This will be sized to fit the tallest mouse
-            let max_height = mice
+            // First divide the screen vertically into three sections:
+            // 1. CPU section (if present and is the first mouse)
+            // 2. Memory and GPU section (horizontal layout)
+            // 3. Remaining empty space
+
+            let cpu_mouse = mice.first(); // Get the first mouse (CPU), if present
+
+            // Calculate heights for CPU section
+            let cpu_height = cpu_mouse
+                .map(|mouse| mouse.content.len() as u16 + 2) // +2 for borders
+                .unwrap_or(0);
+
+            // Calculate height for horizontal section (max height of remaining mice)
+            let horizontal_section_height = mice
                 .iter()
+                .skip(1) // Skip the CPU mouse
                 .map(|mouse| mouse.content.len() as u16 + 2) // +2 for borders
                 .max()
                 .unwrap_or(0);
 
+            // Main vertical layout
             let main_chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .margin(1)
                 .constraints([
-                    Constraint::Length(max_height),
+                    Constraint::Length(cpu_height),
+                    Constraint::Length(horizontal_section_height),
                     Constraint::Min(0), // Remaining space
                 ])
                 .split(area);
 
-            // Now create a horizontal layout within the top chunk
-            let horizontal_constraints: Vec<Constraint> = mice
-                .iter()
-                .map(|mouse| {
-                    // Find the longest line in the content
-                    let max_width = mouse
-                        .content
-                        .iter()
-                        .map(|line| line.width())
-                        .max()
-                        .unwrap_or(0)
-                        .max(mouse.title.len());
+            // Render CPU mouse at the top if present
+            if let Some(cpu_mouse) = cpu_mouse {
+                let paragraph = cpu_mouse.get_paragraph();
+                frame.render_widget(paragraph, main_chunks[0]);
+            }
 
-                    // Add padding for borders
-                    Constraint::Min((max_width + 4) as u16)
-                })
-                .collect();
+            // Create horizontal layout for the remaining mice (memory and GPU)
+            let remaining_mice = mice.iter().skip(1).collect::<Vec<_>>();
 
-            let horizontal_chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints(horizontal_constraints)
-                .split(main_chunks[0]);
+            if !remaining_mice.is_empty() {
+                let horizontal_constraints: Vec<Constraint> = remaining_mice
+                    .iter()
+                    .map(|mouse| {
+                        // Find the longest line in the content
+                        let max_width = mouse
+                            .content
+                            .iter()
+                            .map(|line| line.width())
+                            .max()
+                            .unwrap_or(0)
+                            .max(mouse.title.len());
 
-            // Now for each mouse, create an individual vertical layout to size to exact content height
-            for (idx, mouse) in mice.iter().enumerate() {
-                if idx < horizontal_chunks.len() {
-                    let height = mouse.content.len() as u16 + 2; // +2 for borders
+                        // Add padding for borders
+                        Constraint::Min((max_width + 4) as u16)
+                    })
+                    .collect();
 
-                    let mouse_chunks = Layout::default()
-                        .direction(Direction::Vertical)
-                        .constraints([Constraint::Length(height), Constraint::Min(0)])
-                        .split(horizontal_chunks[idx]);
+                let horizontal_chunks = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints(horizontal_constraints)
+                    .split(main_chunks[1]);
 
-                    let paragraph = mouse.get_paragraph();
-                    frame.render_widget(paragraph, mouse_chunks[0]);
+                // Render the remaining mice horizontally
+                for (idx, mouse) in remaining_mice.iter().enumerate() {
+                    if idx < horizontal_chunks.len() {
+                        let paragraph = mouse.get_paragraph();
+                        frame.render_widget(paragraph, horizontal_chunks[idx]);
+                    }
                 }
             }
         })?;
