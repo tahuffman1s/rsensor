@@ -40,22 +40,61 @@ impl Rat {
     pub fn draw(&mut self) -> std::io::Result<()> {
         let mice = self.mice.clone();
         self.hole.draw(|frame| {
-            // Create a layout that divides the screen horizontally
-            let chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .margin(1)
-                .constraints(
-                    mice.iter()
-                        .map(|_| Constraint::Percentage((100 / mice.len()) as u16))
-                        .collect::<Vec<Constraint>>(),
-                )
-                .split(frame.size());
+            // Get available area
+            let area = frame.size();
 
-            // Render each mouse in its own chunk
+            // First create a layout that only uses the top portion of the screen
+            // This will be sized to fit the tallest mouse
+            let max_height = mice
+                .iter()
+                .map(|mouse| mouse.content.len() as u16 + 2) // +2 for borders
+                .max()
+                .unwrap_or(0);
+
+            let main_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints([
+                    Constraint::Length(max_height),
+                    Constraint::Min(0), // Remaining space
+                ])
+                .split(area);
+
+            // Now create a horizontal layout within the top chunk
+            let horizontal_constraints: Vec<Constraint> = mice
+                .iter()
+                .map(|mouse| {
+                    // Find the longest line in the content
+                    let max_width = mouse
+                        .content
+                        .iter()
+                        .map(|line| line.width())
+                        .max()
+                        .unwrap_or(0)
+                        .max(mouse.title.len());
+
+                    // Add padding for borders
+                    Constraint::Min((max_width + 4) as u16)
+                })
+                .collect();
+
+            let horizontal_chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints(horizontal_constraints)
+                .split(main_chunks[0]);
+
+            // Now for each mouse, create an individual vertical layout to size to exact content height
             for (idx, mouse) in mice.iter().enumerate() {
-                if idx < chunks.len() {
+                if idx < horizontal_chunks.len() {
+                    let height = mouse.content.len() as u16 + 2; // +2 for borders
+
+                    let mouse_chunks = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints([Constraint::Length(height), Constraint::Min(0)])
+                        .split(horizontal_chunks[idx]);
+
                     let paragraph = mouse.get_paragraph();
-                    frame.render_widget(paragraph, chunks[idx]);
+                    frame.render_widget(paragraph, mouse_chunks[0]);
                 }
             }
         })?;
@@ -94,5 +133,19 @@ impl Mouse {
                 .borders(Borders::ALL)
                 .title(self.title.clone()),
         )
+    }
+
+    pub fn content_width(&self) -> usize {
+        self.content
+            .iter()
+            .map(|line| line.width())
+            .max()
+            .unwrap_or(0)
+            .max(self.title.len())
+    }
+
+    // Add this method to get the number of lines
+    pub fn content_height(&self) -> usize {
+        self.content.len() + 2 // +2 for title bar and bottom border
     }
 }
