@@ -10,6 +10,7 @@ depends=('gcc-libs')
 makedepends=('cargo')
 provides=('rsensor')
 conflicts=('rsensor')
+install="${pkgname}.install"  # Reference to the install file
 
 # Override default source handling completely
 source=()
@@ -48,4 +49,7 @@ package() {
   if [ -f "$startdir/LICENSE" ]; then
     install -Dm644 "$startdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   fi
+  
+  # Install the .install file
+  install -Dm644 "$startdir/${pkgname}.install" "$pkgdir/usr/share/${pkgname}/${pkgname}.install"
 }

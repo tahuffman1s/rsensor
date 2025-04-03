@@ -1,0 +1,15 @@
+# rsensor.install
+
+post_install() {
+  echo "rsensor has been installed to /usr/bin/rsensor"
+  echo "Run 'rsensor' to start monitoring your system"
+  echo "Exit the application by pressing 'q' or Ctrl+C"
+}
+
+post_upgrade() {
+  echo "rsensor has been upgraded to version $1"
+}
+
+post_remove() {
+  echo "rsensor has been removed from your system"
+}
