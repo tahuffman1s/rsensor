@@ -1,4 +1,5 @@
 use ratatui::{
+    layout::{Constraint, Direction, Layout},
     prelude::CrosstermBackend,
     text::Line,
     widgets::{Block, Borders, Paragraph},
@@ -28,6 +29,10 @@ impl Rat {
         self.mice.push(mouse);
     }
 
+    pub fn clear(&mut self) {
+        self.mice.clear();
+    }
+
     pub fn remove(&mut self, mouse: &Mouse) {
         self.mice.retain(|x| x != mouse);
     }
@@ -35,10 +40,23 @@ impl Rat {
     pub fn draw(&mut self) -> std::io::Result<()> {
         let mice = self.mice.clone();
         self.hole.draw(|frame| {
-            for mouse in mice {
-                let area = frame.area();
-                let paragraph = mouse.get_paragraph();
-                frame.render_widget(paragraph, area);
+            // Create a layout that divides the screen horizontally
+            let chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .margin(1)
+                .constraints(
+                    mice.iter()
+                        .map(|_| Constraint::Percentage((100 / mice.len()) as u16))
+                        .collect::<Vec<Constraint>>(),
+                )
+                .split(frame.size());
+
+            // Render each mouse in its own chunk
+            for (idx, mouse) in mice.iter().enumerate() {
+                if idx < chunks.len() {
+                    let paragraph = mouse.get_paragraph();
+                    frame.render_widget(paragraph, chunks[idx]);
+                }
             }
         })?;
 
@@ -46,13 +64,13 @@ impl Rat {
     }
 
     pub fn cleanup(&mut self) -> std::io::Result<()> {
-        use crossterm::terminal::{disable_raw_mode, LeaveAlternateScreen};
         use crossterm::execute;
-        
+        use crossterm::terminal::{disable_raw_mode, LeaveAlternateScreen};
+
         disable_raw_mode()?;
         execute!(self.hole.backend_mut(), LeaveAlternateScreen)?;
         self.hole.show_cursor()?;
-        
+
         Ok(())
     }
 }
