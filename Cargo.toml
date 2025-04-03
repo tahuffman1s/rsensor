@@ -9,6 +9,12 @@ repository = "https://github.com/tahuffman1s/rsensor"
 keywords = ["rsensor", "sensor"]
 categories = ["hardware-support", "command-line-utilities"]
 
+# You shouldn't need this section if you have src/main.rs in the standard location,
+# but adding it explicitly might help
+[[bin]]
+name = "rsensor"
+path = "src/main.rs"
+
 [dependencies]
 sysinfo = "0.33.1"
 crossterm = "0.28.1"
