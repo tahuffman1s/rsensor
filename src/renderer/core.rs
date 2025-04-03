@@ -44,6 +44,17 @@ impl Rat {
 
         Ok(())
     }
+
+    pub fn cleanup(&mut self) -> std::io::Result<()> {
+        use crossterm::terminal::{disable_raw_mode, LeaveAlternateScreen};
+        use crossterm::execute;
+        
+        disable_raw_mode()?;
+        execute!(self.hole.backend_mut(), LeaveAlternateScreen)?;
+        self.hole.show_cursor()?;
+        
+        Ok(())
+    }
 }
 
 impl Mouse {
