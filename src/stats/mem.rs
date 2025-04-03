@@ -50,18 +50,35 @@ impl MemStats {
     pub fn get_mouse(&mut self) -> Mouse {
         let title = String::from("Memory");
         let mut mouse = Mouse::new(title);
+
+        // Current usage on its own line
         mouse.add(format!(
-            "Memory Usage:{:.2}{}/{:.2}{} {}% Max:{:.2}{} Min:{:.2}{}",
+            "Current Usage: {:.2}{}/{:.2}{}",
             self.mem_usage.get_value(),
             self.mem_usage.get_unit(),
             self.total_mem.get_value(),
-            self.total_mem.get_unit(),
-            self.percentage_used,
+            self.total_mem.get_unit()
+        ));
+
+        // Percentage used on its own line
+        mouse.add(format!("Usage Percentage: {:.1}%", self.percentage_used));
+
+        // Min/Max statistics on its own line
+        mouse.add(format!(
+            "Max: {:.2}{}, Min: {:.2}{}",
             self.max_mem_usage.get_value(),
             self.max_mem_usage.get_unit(),
             self.min_mem_usage.get_value(),
             self.min_mem_usage.get_unit()
         ));
+
+        // Available memory on its own line
+        mouse.add(format!(
+            "Available: {:.2}{}",
+            self.available_mem.get_value(),
+            self.available_mem.get_unit()
+        ));
+
         return mouse;
     }
 }

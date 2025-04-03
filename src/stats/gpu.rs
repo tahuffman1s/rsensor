@@ -11,6 +11,23 @@ use std::process::Command;
 #[derive(Clone)]
 pub struct GpuStats {
     gpus: Vec<GpuInfo>,
+    // Track previous stats for min/max values
+    previous_gpu_states: Vec<GpuMinMaxStats>,
+}
+
+#[derive(Clone)]
+struct GpuMinMaxStats {
+    id: String,
+    min_usage_percent: f64,
+    max_usage_percent: f64,
+    min_memory_percent: f64,
+    max_memory_percent: f64,
+    min_edge_temp: f64,
+    max_edge_temp: f64,
+    min_junction_temp: f64,
+    max_junction_temp: f64,
+    min_memory_temp: f64,
+    max_memory_temp: f64,
 }
 
 #[derive(Clone)]
@@ -35,13 +52,27 @@ pub enum GpuVendor {
     Unknown,
 }
 
+impl GpuVendor {
+    pub fn as_string(&self) -> &str {
+        match self {
+            GpuVendor::Nvidia => "NVIDIA",
+            GpuVendor::Amd => "AMD",
+            GpuVendor::Unknown => "Unknown",
+        }
+    }
+}
+
 impl GpuStats {
     pub fn new() -> Self {
-        GpuStats { gpus: Vec::new() }
+        GpuStats {
+            gpus: Vec::new(),
+            previous_gpu_states: Vec::new(),
+        }
     }
 
     pub fn update(&mut self, sys_obj: &mut SysWrapper) {
         // Clear existing GPU info
+        let previous_gpus = self.gpus.clone();
         self.gpus.clear();
 
         // Detect and update NVIDIA GPUs
@@ -49,6 +80,81 @@ impl GpuStats {
 
         // Detect and update AMD GPUs
         self.update_amd_gpus();
+
+        // Update min/max statistics for each GPU
+        for gpu in &self.gpus {
+            let gpu_id = format!("{} {}", gpu.vendor.as_string(), &gpu.name);
+
+            // Find existing stats or create new ones
+            let stats_index = self.previous_gpu_states.iter().position(|s| s.id == gpu_id);
+
+            if let Some(index) = stats_index {
+                // Update existing stats
+                let stats = &mut self.previous_gpu_states[index];
+
+                // Update usage percent min/max
+                if gpu.usage_percent < stats.min_usage_percent || stats.min_usage_percent == 0.0 {
+                    stats.min_usage_percent = gpu.usage_percent;
+                }
+                if gpu.usage_percent > stats.max_usage_percent {
+                    stats.max_usage_percent = gpu.usage_percent;
+                }
+
+                // Update memory percent min/max
+                if gpu.memory_percent < stats.min_memory_percent || stats.min_memory_percent == 0.0
+                {
+                    stats.min_memory_percent = gpu.memory_percent;
+                }
+                if gpu.memory_percent > stats.max_memory_percent {
+                    stats.max_memory_percent = gpu.memory_percent;
+                }
+
+                // Update temperature min/max
+                if gpu.edge_temp < stats.min_edge_temp || stats.min_edge_temp == 0.0 {
+                    stats.min_edge_temp = gpu.edge_temp;
+                }
+                if gpu.edge_temp > stats.max_edge_temp {
+                    stats.max_edge_temp = gpu.edge_temp;
+                }
+
+                if gpu.junction_temp < stats.min_junction_temp || stats.min_junction_temp == 0.0 {
+                    stats.min_junction_temp = gpu.junction_temp;
+                }
+                if gpu.junction_temp > stats.max_junction_temp {
+                    stats.max_junction_temp = gpu.junction_temp;
+                }
+
+                if gpu.memory_temp < stats.min_memory_temp || stats.min_memory_temp == 0.0 {
+                    stats.min_memory_temp = gpu.memory_temp;
+                }
+                if gpu.memory_temp > stats.max_memory_temp {
+                    stats.max_memory_temp = gpu.memory_temp;
+                }
+            } else {
+                // Create new stats
+                self.previous_gpu_states.push(GpuMinMaxStats {
+                    id: gpu_id,
+                    min_usage_percent: gpu.usage_percent,
+                    max_usage_percent: gpu.usage_percent,
+                    min_memory_percent: gpu.memory_percent,
+                    max_memory_percent: gpu.memory_percent,
+                    min_edge_temp: gpu.edge_temp,
+                    max_edge_temp: gpu.edge_temp,
+                    min_junction_temp: gpu.junction_temp,
+                    max_junction_temp: gpu.junction_temp,
+                    min_memory_temp: gpu.memory_temp,
+                    max_memory_temp: gpu.memory_temp,
+                });
+            }
+        }
+
+        // Clean up stats for removed GPUs
+        self.previous_gpu_states.retain(|stats| {
+            self.gpus.iter().any(|gpu| {
+                let gpu_id = format!("{} {}", gpu.vendor.as_string(), &gpu.name);
+                stats.id == gpu_id
+            })
+        });
     }
 
     fn update_nvidia_gpus(&mut self) {
@@ -277,27 +383,72 @@ impl GpuStats {
                 .name
                 .replace("Advanced Micro Devices, Inc. [AMD/ATI]", "AMD");
 
+            // Get the min/max stats for this GPU
+            let gpu_id = format!("{} {}", gpu.vendor.as_string(), &gpu.name);
+            let stats = self.previous_gpu_states.iter().find(|s| s.id == gpu_id);
+
             // Split model name into own line if it's long
             mouse.add(format!("GPU {}: {}", i + 1, display_name));
 
-            // Add temperature information
-            mouse.add(format!(
-                "Temp: Edge: {:.1}°C, Junction: {:.1}°C, Memory: {:.1}°C",
-                gpu.edge_temp, gpu.junction_temp, gpu.memory_temp
-            ));
+            // Add temperature information with min/max
+            if let Some(stats) = stats {
+                mouse.add(format!(
+                    "Temp: Edge: {:.1}°C (Min: {:.1}°C, Max: {:.1}°C)",
+                    gpu.edge_temp, stats.min_edge_temp, stats.max_edge_temp
+                ));
 
-            // Add GPU utilization
-            mouse.add(format!("GPU Usage: {:.1}%", gpu.usage_percent));
+                if gpu.junction_temp > 0.0 {
+                    mouse.add(format!(
+                        "Junct: {:.1}°C (Min: {:.1}°C, Max: {:.1}°C)",
+                        gpu.junction_temp, stats.min_junction_temp, stats.max_junction_temp
+                    ));
+                }
 
-            // Add memory information
-            mouse.add(format!(
-                "Memory: {:.2}{}/{:.2}{} ({:.1}%)",
-                gpu.memory_used.get_value(),
-                gpu.memory_used.get_unit(),
-                gpu.memory_total.get_value(),
-                gpu.memory_total.get_unit(),
-                gpu.memory_percent
-            ));
+                if gpu.memory_temp > 0.0 {
+                    mouse.add(format!(
+                        "Mem Temp: {:.1}°C (Min: {:.1}°C, Max: {:.1}°C)",
+                        gpu.memory_temp, stats.min_memory_temp, stats.max_memory_temp
+                    ));
+                }
+
+                // Add GPU utilization with min/max
+                mouse.add(format!(
+                    "GPU Usage: {:.1}% (Min: {:.1}%, Max: {:.1}%)",
+                    gpu.usage_percent, stats.min_usage_percent, stats.max_usage_percent
+                ));
+
+                // Add memory information with min/max percentage
+                mouse.add(format!(
+                    "Memory: {:.2}{}/{:.2}{} ({:.1}%)",
+                    gpu.memory_used.get_value(),
+                    gpu.memory_used.get_unit(),
+                    gpu.memory_total.get_value(),
+                    gpu.memory_total.get_unit(),
+                    gpu.memory_percent
+                ));
+
+                mouse.add(format!(
+                    "Mem Usage: Min: {:.1}%, Max: {:.1}%",
+                    stats.min_memory_percent, stats.max_memory_percent
+                ));
+            } else {
+                // Fallback if we don't have min/max stats yet
+                mouse.add(format!(
+                    "Temp: Edge: {:.1}°C, Junction: {:.1}°C, Memory: {:.1}°C",
+                    gpu.edge_temp, gpu.junction_temp, gpu.memory_temp
+                ));
+
+                mouse.add(format!("GPU Usage: {:.1}%", gpu.usage_percent));
+
+                mouse.add(format!(
+                    "Memory: {:.2}{}/{:.2}{} ({:.1}%)",
+                    gpu.memory_used.get_value(),
+                    gpu.memory_used.get_unit(),
+                    gpu.memory_total.get_value(),
+                    gpu.memory_total.get_unit(),
+                    gpu.memory_percent
+                ));
+            }
         }
 
         return mouse;
