@@ -9,6 +9,7 @@ use ratatui::{
 pub struct Rat {
     hole: Terminal<CrosstermBackend<std::io::Stdout>>,
     mice: Vec<Mouse>,
+    color_shift_counter: usize,
 }
 
 #[derive(PartialEq, Clone)]
@@ -22,6 +23,7 @@ impl Rat {
         Rat {
             hole: ratatui::init(),
             mice: Vec::new(),
+            color_shift_counter: 0,
         }
     }
 
@@ -37,17 +39,69 @@ impl Rat {
         self.mice.retain(|x| x != mouse);
     }
 
+    // In src/renderer/core.rs
+    // Inside the draw method of the Rat struct, after rendering the mice but before the final closing brace
     pub fn draw(&mut self) -> std::io::Result<()> {
+        // Increment the color shift counter for each frame
+        self.color_shift_counter = (self.color_shift_counter + 1) % 7;
+
         let mice = self.mice.clone();
         self.hole.draw(|frame| {
             // Get available area
             let area = frame.size();
 
-            // First divide the screen vertically into three sections:
-            // 1. CPU section (if present and is the first mouse)
-            // 2. Memory and GPU section (horizontal layout)
-            // 3. Remaining empty space
+            // Create a vertical layout with title, main content, and footer
+            let vertical_layout = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(1), // Title area (1 line)
+                    Constraint::Min(3),    // Main content (at least 3 lines)
+                    Constraint::Length(1), // Footer area (1 line)
+                ])
+                .margin(1)
+                .split(area);
 
+            let title_area = vertical_layout[0];
+            let main_area = vertical_layout[1];
+            let footer_area = vertical_layout[2];
+
+            // Create rainbow title text with shifting colors
+            let rainbow_colors = [
+                ratatui::style::Color::Red,
+                ratatui::style::Color::LightRed,
+                ratatui::style::Color::Yellow,
+                ratatui::style::Color::Green,
+                ratatui::style::Color::Cyan,
+                ratatui::style::Color::Blue,
+                ratatui::style::Color::Magenta,
+            ];
+
+            // Split "Rsensor" into individual styled spans with shifting colors
+            let title_chars = "Rsensor".chars();
+            let mut spans = Vec::new();
+
+            for (i, ch) in title_chars.enumerate() {
+                // Use counter to offset color index, creating shifting effect
+                let color_index = (i + self.color_shift_counter) % rainbow_colors.len();
+                spans.push(ratatui::text::Span::styled(
+                    ch.to_string(),
+                    ratatui::style::Style::default()
+                        .fg(rainbow_colors[color_index])
+                        .add_modifier(ratatui::style::Modifier::BOLD),
+                ));
+            }
+
+            // Create a styled line from the spans
+            let title_line = ratatui::text::Line::from(spans);
+
+            // Create paragraph from the line
+            let title = Paragraph::new(vec![title_line]);
+            frame.render_widget(title, title_area);
+
+            // Rest of the draw method remains the same...
+            // [existing code for CPU, memory, and GPU displays]
+
+            // Now subdivide the main area for content
             let cpu_mouse = mice.first(); // Get the first mouse (CPU), if present
 
             // Calculate heights for CPU section
@@ -63,16 +117,15 @@ impl Rat {
                 .max()
                 .unwrap_or(0);
 
-            // Main vertical layout
+            // Content layout within main area
             let main_chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .margin(1)
                 .constraints([
                     Constraint::Length(cpu_height),
                     Constraint::Length(horizontal_section_height),
                     Constraint::Min(0), // Remaining space
                 ])
-                .split(area);
+                .split(main_area);
 
             // Render CPU mouse at the top if present
             if let Some(cpu_mouse) = cpu_mouse {
@@ -114,6 +167,11 @@ impl Rat {
                     }
                 }
             }
+
+            // Add help text in the footer area - aligned to the right
+            let help_text =
+                Paragraph::new("ctrl-c or q to quit").alignment(ratatui::layout::Alignment::Right);
+            frame.render_widget(help_text, footer_area);
         })?;
 
         Ok(())
