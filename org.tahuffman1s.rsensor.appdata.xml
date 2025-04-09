@@ -3,6 +3,7 @@
   <id>org.tahuffman1s.rsensor</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
+  <icon type="stock">org.tahuffman1s.rsensor</icon>
   <name>rsensor</name>
   <summary>A lightweight system monitoring tool written in Rust</summary>
   <description>

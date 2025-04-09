@@ -18,16 +18,16 @@ modules:
   - name: rsensor
     buildsystem: simple
     build-commands:
-      - cargo --offline fetch --manifest-path Cargo.toml --verbose
-      - cargo --offline build --release --all-features
+      - install -Dm644 assets/icons/rsensor.svg /app/share/icons/hicolor/scalable/apps/org.tahuffman1s.rsensor.svg
+      - cargo --offline build --release --verbose
+      - mkdir -p /app/share/applications
+      - mkdir -p /app/share/appdata
       - install -Dm755 ./target/release/rsensor -t /app/bin/
-      - install -Dm644 org.tahuffman1s.rsensor.desktop /app/share/applications/org.tahuffman1s.rsensor.desktop
-      - install -Dm644 org.tahuffman1s.rsensor.appdata.xml /app/share/appdata/org.tahuffman1s.rsensor.appdata.xml
+      - install -Dm644 org.tahuffman1s.rsensor.desktop /app/share/applications/
+      - install -Dm644 org.tahuffman1s.rsensor.appdata.xml /app/share/appdata/
     sources:
       - type: dir
         path: .
-      - type: file
-        path: cargo-sources.json
     build-options:
       append-path: /usr/lib/sdk/rust-stable/bin
       env:

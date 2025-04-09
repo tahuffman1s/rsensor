@@ -4,5 +4,8 @@
 /build-dir
 /vendor
 /.flatpak-builder
+/repo
 *.tar.zst
 *.tar.gz
+*.flatpak
+
