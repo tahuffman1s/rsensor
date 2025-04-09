@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=rsensor
+Comment=A lightweight system monitoring tool written in Rust
+Exec=rsensor
+Icon=utilities-system-monitor
+Terminal=true
+Categories=System;Monitor;ConsoleOnly;
+Keywords=system;monitor;sensor;temperature;cpu;memory;gpu;
+StartupNotify=true

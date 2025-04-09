@@ -1,5 +1,7 @@
 /target
 /pkg
 /rsensor
+/build-dir
+/.flatpak-builder
 *.tar.zst
 *.tar.gz

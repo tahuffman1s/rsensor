@@ -1,0 +1,45 @@
+app-id: org.tahuffman1s.rsensor
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: rsensor
+finish-args:
+  # Give access to system hardware information
+  - --device=all
+  - --system-talk-name=org.freedesktop.GeoClue2
+  - --system-talk-name=org.freedesktop.UPower
+  - --system-talk-name=org.freedesktop.hostname1
+  - --system-talk-name=org.freedesktop.locale1
+  - --system-talk-name=org.freedesktop.login1
+  - --system-talk-name=org.freedesktop.timedate1
+  # Allow the app to talk to the GPU to fetch statistics
+  - --device=dri
+modules:
+  - name: rsensor
+    buildsystem: simple
+    build-commands:
+      - cargo build --release --all-features
+      - install -Dm755 target/release/rsensor /app/bin/rsensor
+      - install -Dm644 $FLATPAK_ID.desktop /app/share/applications/$FLATPAK_ID.desktop
+      - install -Dm644 $FLATPAK_ID.appdata.xml /app/share/appdata/$FLATPAK_ID.appdata.xml
+    sources:
+      - type: dir
+        path: .
+      - type: file
+        path: org.tahuffman1s.rsensor.desktop
+      - type: file
+        path: org.tahuffman1s.rsensor.appdata.xml
+    build-options:
+      env:
+        CARGO_HOME: /run/build/rsensor/cargo
+    modules:
+      - name: rust
+        buildsystem: simple
+        build-commands:
+          - ./install.sh --prefix=/app
+        sources:
+          - type: archive
+            url: https://static.rust-lang.org/dist/rust-1.77.0-x86_64-unknown-linux-gnu.tar.gz
+            sha256: cbdd1b93046ea4aed974016e328cb09ad0b8ee96893bd5d548fd3e7907607c75
+        cleanup:
+          - /app/lib/rustlib

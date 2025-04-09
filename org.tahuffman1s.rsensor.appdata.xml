@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.tahuffman1s.rsensor</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>rsensor</name>
+  <summary>A lightweight system monitoring tool written in Rust</summary>
+  <description>
+    <p>
+      rsensor is a terminal-based system monitoring tool inspired by psensor.
+      It provides real-time statistics about your system hardware.
+    </p>
+    <p>Features include:</p>
+    <ul>
+      <li>Real-time CPU monitoring (usage, temperature, per-core stats)</li>
+      <li>Memory usage statistics with min/max tracking</li>
+      <li>GPU monitoring for both NVIDIA and AMD GPUs</li>
+      <li>Terminal-based user interface with clean, responsive layout</li>
+      <li>Low system resource usage</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">org.tahuffman1s.rsensor.desktop</launchable>
+  <url type="homepage">https://github.com/tahuffman1s/rsensor</url>
+  <provides>
+    <binary>rsensor</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2025-04-09">
+      <description>
+        <p>Initial release</p>
+      </description>
+    </release>
+  </releases>
+  <developer_name>Travis Huffman</developer_name>
+</component>
