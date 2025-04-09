@@ -18,28 +18,18 @@ modules:
   - name: rsensor
     buildsystem: simple
     build-commands:
-      - cargo build --release --all-features
-      - install -Dm755 target/release/rsensor /app/bin/rsensor
-      - install -Dm644 $FLATPAK_ID.desktop /app/share/applications/$FLATPAK_ID.desktop
-      - install -Dm644 $FLATPAK_ID.appdata.xml /app/share/appdata/$FLATPAK_ID.appdata.xml
+      - cargo --offline fetch --manifest-path Cargo.toml --verbose
+      - cargo --offline build --release --all-features
+      - install -Dm755 ./target/release/rsensor -t /app/bin/
+      - install -Dm644 org.tahuffman1s.rsensor.desktop /app/share/applications/org.tahuffman1s.rsensor.desktop
+      - install -Dm644 org.tahuffman1s.rsensor.appdata.xml /app/share/appdata/org.tahuffman1s.rsensor.appdata.xml
     sources:
       - type: dir
         path: .
       - type: file
-        path: org.tahuffman1s.rsensor.desktop
-      - type: file
-        path: org.tahuffman1s.rsensor.appdata.xml
+        path: cargo-sources.json
     build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
       env:
         CARGO_HOME: /run/build/rsensor/cargo
-    modules:
-      - name: rust
-        buildsystem: simple
-        build-commands:
-          - ./install.sh --prefix=/app
-        sources:
-          - type: archive
-            url: https://static.rust-lang.org/dist/rust-1.77.0-x86_64-unknown-linux-gnu.tar.gz
-            sha256: cbdd1b93046ea4aed974016e328cb09ad0b8ee96893bd5d548fd3e7907607c75
-        cleanup:
-          - /app/lib/rustlib
+        RUSTFLAGS: --remap-path-prefix=/run/build=/usr

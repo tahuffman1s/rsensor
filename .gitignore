@@ -2,6 +2,7 @@
 /pkg
 /rsensor
 /build-dir
+/vendor
 /.flatpak-builder
 *.tar.zst
 *.tar.gz
