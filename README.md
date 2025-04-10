@@ -1,5 +1,3 @@
-I'll modify the README.md markdown directly:
-
 # rsensor
 
 A lightweight system monitoring tool written in Rust, inspired by psensor.
