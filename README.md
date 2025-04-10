@@ -86,6 +86,9 @@ Run `rsensor` from your terminal to start the application.
 - Press `q` or `Ctrl+C` to exit
 - The interface will automatically update every 250ms
 
+If you're using the flatpak release it will add an icon to your menu
+It can also be ran using `flatpak run org.tahuffman1s.rsensor`
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE.md file for details.
